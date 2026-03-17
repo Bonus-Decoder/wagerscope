@@ -1,0 +1,134 @@
+============================================================
+PROMPT 5 — REFERRAL SYSTEM + ANTI-FRAUD + ADMIN DASHBOARD
+============================================================
+
+Contesto: sto costruendo "Bonus Decoder", una PWA Next.js 14 (App Router) per affiliazione crypto casino in Africa (Nigeria + Kenya). Il progetto ha: homepage, calculator, pagine casino, SEO, database Prisma/Supabase, auth SMS OTP con JWT, modelli User/Wallet/Referral/Click/Conversion in Prisma. Lavora nella directory esistente.
+
+TASK: Implementa il referral system completo, anti-fraud, e admin dashboard.
+
+PARTE A — REFERRAL SYSTEM
+
+1. app/(app)/referral/page.tsx — Dashboard referral (protetta, richiede login):
+   - Fetch dati da /api/referral/stats
+   - Layout:
+     a) Hero card: "Earn $1 USDT for every friend who uses Bonus Decoder"
+     b) Referral link box: https://bonusdecoder.app/r/{userReferralCode} con bottone Copy + Share buttons (WhatsApp, Telegram)
+        - WhatsApp share URL: https://wa.me/?text=Check out Bonus Decoder...{referralLink}
+        - Telegram share URL: https://t.me/share/url?url={referralLink}&text=...
+     c) Stats cards: Total Invited, Qualified, Rewards Earned ($), Available Balance ($)
+     d) Tabella referral: lista referee con status (pending/qualified/rewarded), data, reward amount
+     e) Withdraw button (abilitato solo se balance >= $5): apre dialog di conferma
+
+2. app/r/[code]/page.tsx — Referral landing page:
+   - Leggi [code] dal path
+   - Salva referralCode in cookie "ref" con durata 30 giorni
+   - Redirect 302 a / (homepage)
+   - Se code non valido (non esiste in DB): redirect a / senza cookie
+
+3. app/api/referral/stats/route.ts — Stats endpoint:
+   - GET, richiede auth
+   - Ritorna: { totalInvited, qualified, totalEarned, availableBalance, referrals: [...] }
+   - totalInvited = count referrals where referrerId = userId
+   - qualified = count where status = "qualified" or "rewarded"
+   - totalEarned = sum of rewards
+   - availableBalance = wallet.balanceUsdt
+
+4. Logica qualificazione referral — lib/referral.ts:
+   - checkAndQualifyReferral(userId: string): chiamata dopo ogni azione significativa
+   - Un referral diventa "qualified" quando il referee ha:
+     a) Usato il calculator almeno 2 volte (traccia con un counter in un cookie o localStorage, oppure campo in User model — scegli l'approccio più semplice, consiglio: aggiungi campo calculatorUses Int @default(0) al model User)
+     b) Cliccato almeno 1 casino link (count clicks where userId = refereeId)
+   - Quando qualified:
+     a) Update referral.status = "qualified", referral.qualifiedAt = now
+     b) Accredita $1 al wallet del referrer: wallet.balanceUsdt += 1
+     c) Crea WalletTransaction type "referral_reward", amount 1, status "completed"
+
+5. Aggiorna calculator e click tracking per triggare checkAndQualifyReferral:
+   - In /api/tracking/click: dopo aver salvato il click, se user autenticato chiama checkAndQualifyReferral(userId)
+   - Nel calculator: aggiungi un endpoint /api/calculator/use (POST, auth required) che incrementa user.calculatorUses e chiama checkAndQualifyReferral(userId). Chiamalo dal client dopo ogni calcolo (debounced, max 1 call per sessione di 5 minuti)
+
+PARTE B — ANTI-FRAUD
+
+6. lib/antifraud.ts — Layer anti-fraud:
+   
+   a) Device fingerprinting (lato client):
+      - Installa: npm install @fingerprintjs/fingerprintjs
+      - Crea components/Fingerprint.tsx: componente client che al mount genera fingerprint e lo salva in cookie "dfp" (30 giorni)
+      - Includi questo componente nel root layout
+   
+   b) Validazioni server-side (tutte in lib/antifraud.ts):
+      - checkDuplicateDevice(fingerprint: string): se esiste altro User con stesso fingerprint → blocca registrazione
+      - checkReferralRateLimit(userId: string): max 10 referral qualificati per giorno per user. Se superato → non qualificare, logga warning
+      - checkIpClustering(ip: string): se > 5 registrazioni dallo stesso /24 IP nelle ultime 24h → flag user come suspicious
+      - checkWithdrawalEligibility(userId: string): 
+        * Balance >= $5
+        * Account creato da almeno 48h
+        * User non flaggato come suspicious
+        * Max 1 withdrawal per 24h
+   
+   c) Aggiungi campo "suspicious" Boolean @default(false) al model User in Prisma
+   d) Aggiungi campo "deviceFingerprint" String? al model User
+   
+   e) Integra i check:
+      - In verify-otp: chiama checkDuplicateDevice prima di creare user
+      - In referral qualification: chiama checkReferralRateLimit
+      - Crea /api/wallet/withdraw endpoint che chiama checkWithdrawalEligibility
+
+7. app/api/wallet/withdraw/route.ts — Endpoint prelievo:
+   - POST, auth required, body: { amount: number, address: string }
+   - Chiama checkWithdrawalEligibility
+   - Se ok: decrementa balance, crea WalletTransaction type "withdrawal", status "pending"
+   - Per ora: NON esegui transazione blockchain reale. Solo update DB.
+   - Ritorna { success: true, txId: transaction.id }
+
+PARTE C — WALLET PAGE
+
+8. app/(app)/wallet/page.tsx — Pagina wallet (protetta):
+   - Balance card grande: "$X.XX USDT" con icona
+   - Bottone Withdraw (apre dialog con form: amount + address)
+   - Transaction history: tabella con type, amount, status, date, txHash (se presente)
+   - Fetch dati da /api/wallet/balance e /api/wallet/transactions
+
+9. app/api/wallet/balance/route.ts — GET balance
+10. app/api/wallet/transactions/route.ts — GET lista transazioni
+
+PARTE D — ADMIN DASHBOARD
+
+11. app/admin/page.tsx — Dashboard admin (protetta con check hardcoded):
+    - Proteggi con un check semplice: se user.phone !== env.ADMIN_PHONE → 403
+    - Aggiungi ADMIN_PHONE a .env.example
+    
+    Layout dashboard con 4 sezioni:
+
+    a) Overview cards: Total Users, Total Clicks, Total FTDs (conversions), Total Revenue, Total Referrals
+    b) Clicks chart: recharts BarChart, clicks per giorno ultimi 30 giorni (se no dati ancora, mostra chart vuoto)
+    c) Casino performance table: clicks e conversioni per casino
+    d) Flagged users: lista utenti con suspicious = true, con dettagli (phone, fingerprint, referral count, IP)
+
+12. app/api/admin/stats/route.ts — Endpoint stats admin:
+    - GET, richiede auth + admin check
+    - Aggrega dati da tutte le tabelle
+    - Ritorna { users, clicks, conversions, revenue, referrals, clicksByDay, casinoStats, flaggedUsers }
+
+13. app/api/tracking/postback/route.ts — Endpoint postback dai casino:
+    - GET handler (i casino inviano GET con query params)
+    - Params: click_id, type (FTD/registration), amount, currency, external_id, secret
+    - Verifica secret == env.POSTBACK_SECRET (aggiungi a .env.example)
+    - Crea record Conversion
+    - Ritorna 200 OK
+    - Questo è l'endpoint che daremo ai casino per notificarci delle conversioni
+
+AGGIORNAMENTI PRISMA SCHEMA:
+- Aggiungi calculatorUses Int @default(0) a User
+- Aggiungi suspicious Boolean @default(false) a User
+- Aggiungi deviceFingerprint String? a User
+
+REGOLE:
+- Installa tutti i pacchetti senza chiedere
+- NON eseguire prisma migrate — aggiorna solo schema.prisma
+- Tutto il blockchain/Plasma è simulato: solo update DB, nessuna transazione reale
+- Dark theme, mobile-first, inglese
+- Non rompere nulla di esistente (calculator, casino pages, auth)
+- Crea/aggiorna .env.example con le nuove variabili
+- Non chiedere conferme, esegui tutto
+- Se un file esiste già e deve essere modificato, preserva il codice esistente e aggiungi/modifica solo quello necessario

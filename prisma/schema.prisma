@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Casino {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  url       String
+  countries String[] // e.g. ["NG", "KE"]
+  currency  String[] // e.g. ["BTC", "ETH", "USDT", "NGN", "KES"]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bonuses   Bonus[]
+}
+
+model Bonus {
+  id              String   @id @default(cuid())
+  casinoId        String
+  casino          Casino   @relation(fields: [casinoId], references: [id])
+  name            String
+  type            String   // welcome, reload, cashback, free_spins, no_deposit
+  depositMin      Float?
+  depositMax      Float?
+  matchPercent    Float?   // e.g. 100 = 100%
+  wagerMultiplier Float    // e.g. 35 = 35x
+  maxBet          Float?
+  expiryDays      Int?
+  contributes     Json?    // game-type contribution percentages
+  countries       String[] // eligible countries
+  currency        String[] // eligible currencies
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([casinoId])
+  @@index([type])
+}
+
+model User {
+  id                String   @id @default(cuid())
+  phone             String   @unique
+  country           String   // "NG" or "KE"
+  referralCode      String   @unique @default(cuid())
+  referredBy        String?  // referralCode of who invited them
+  calculatorUses    Int      @default(0)
+  suspicious        Boolean  @default(false)
+  deviceFingerprint String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  wallet        Wallet?
+  clicks        Click[]
+  referralsMade Referral[] @relation("Referrer")
+  referralsFrom Referral?  @relation("Referee")
+  sessions      Session[]
+  otpCodes      OtpCode[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Wallet {
+  id            String              @id @default(cuid())
+  userId        String              @unique
+  plasmaAddress String?             // will be populated after Plasma integration
+  balanceUsdt   Float               @default(0)
+  user          User                @relation(fields: [userId], references: [id])
+  transactions  WalletTransaction[]
+  createdAt     DateTime            @default(now())
+}
+
+model WalletTransaction {
+  id        String   @id @default(cuid())
+  walletId  String
+  type      String   // "referral_reward", "withdrawal", "deposit"
+  amount    Float
+  txHash    String?  // blockchain tx hash
+  status    String   @default("pending") // "pending", "completed", "failed"
+  wallet    Wallet   @relation(fields: [walletId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Click {
+  id                String   @id @default(cuid())
+  userId            String?
+  casinoSlug        String
+  ip                String?
+  userAgent         String?
+  deviceFingerprint String?
+  utmSource         String?
+  utmCampaign       String?
+  utmMedium         String?
+  createdAt         DateTime @default(now())
+  user              User?    @relation(fields: [userId], references: [id])
+}
+
+model Referral {
+  id           String    @id @default(cuid())
+  referrerId   String
+  refereeId    String    @unique
+  status       String    @default("pending") // "pending", "qualified", "rewarded"
+  qualifiedAt  DateTime?
+  rewardTxHash String?
+  referrer     User      @relation("Referrer", fields: [referrerId], references: [id])
+  referee      User      @relation("Referee", fields: [refereeId], references: [id])
+  createdAt    DateTime  @default(now())
+}
+
+model Conversion {
+  id         String   @id @default(cuid())
+  clickId    String?
+  casinoSlug String
+  type       String   // "FTD", "registration"
+  commission Float?
+  currency   String   @default("USD")
+  externalId String?  // ID from the casino
+  createdAt  DateTime @default(now())
+}

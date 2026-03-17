@@ -1,0 +1,201 @@
+============================================================
+PROMPT 4 — DATABASE SUPABASE + AUTH SMS OTP
+============================================================
+
+Contesto: sto costruendo "Bonus Decoder", una PWA Next.js 14 (App Router) per affiliazione crypto casino in Africa (Nigeria + Kenya). Il progetto ha: homepage, calculator, pagine casino SSG, click tracking API, pagine SEO. Tailwind + shadcn/ui. Lavora nella directory esistente.
+
+TASK: Setup database con Prisma + Supabase, e autenticazione via SMS OTP.
+
+PREREQUISITI DA INSTALLARE:
+- npm install prisma @prisma/client
+- npm install next-auth@latest
+- npm install @auth/prisma-adapter
+- npx prisma init
+
+Installa tutti questi pacchetti senza chiedere conferma.
+
+FILE DA CREARE/MODIFICARE:
+
+1. prisma/schema.prisma — Schema completo:
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  phone         String   @unique
+  country       String   // "NG" o "KE"
+  referralCode  String   @unique @default(cuid()) // codice referral unico
+  referredBy    String?  // referralCode di chi lo ha invitato
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  wallet        Wallet?
+  clicks        Click[]
+  referralsMade Referral[] @relation("Referrer")
+  referralsFrom Referral?  @relation("Referee")
+  sessions      Session[]
+  otpCodes      OtpCode[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Wallet {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  plasmaAddress  String?  // sarà popolato dopo integrazione Plasma
+  balanceUsdt    Float    @default(0)
+  user           User     @relation(fields: [userId], references: [id])
+  transactions   WalletTransaction[]
+  createdAt      DateTime @default(now())
+}
+
+model WalletTransaction {
+  id        String   @id @default(cuid())
+  walletId  String
+  type      String   // "referral_reward", "withdrawal", "deposit"
+  amount    Float
+  txHash    String?  // blockchain tx hash
+  status    String   @default("pending") // "pending", "completed", "failed"
+  wallet    Wallet   @relation(fields: [walletId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Click {
+  id              String   @id @default(cuid())
+  userId          String?
+  casinoSlug      String
+  ip              String?
+  userAgent       String?
+  deviceFingerprint String?
+  utmSource       String?
+  utmCampaign     String?
+  utmMedium       String?
+  createdAt       DateTime @default(now())
+  user            User?    @relation(fields: [userId], references: [id])
+}
+
+model Referral {
+  id          String   @id @default(cuid())
+  referrerId  String
+  refereeId   String   @unique
+  status      String   @default("pending") // "pending", "qualified", "rewarded"
+  qualifiedAt DateTime?
+  rewardTxHash String?
+  referrer    User     @relation("Referrer", fields: [referrerId], references: [id])
+  referee     User     @relation("Referee", fields: [refereeId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Conversion {
+  id          String   @id @default(cuid())
+  clickId     String?
+  casinoSlug  String
+  type        String   // "FTD", "registration"
+  commission  Float?
+  currency    String   @default("USD")
+  externalId  String?  // ID dal casino
+  createdAt   DateTime @default(now())
+}
+
+2. lib/db.ts — Prisma client singleton:
+   - Pattern standard: global prisma client per evitare multiple istanze in dev
+   - export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+
+3. lib/auth.ts — Logica autenticazione custom (NO NextAuth, troppo complesso per SMS OTP):
+   
+   Implementa un sistema auth semplice basato su JWT:
+   
+   a) generateOtp(): genera codice 6 cifre, salva in OtpCode con expiresAt = now + 5 minuti
+   b) verifyOtp(phone, code): verifica codice, marca come used, ritorna user (crea se non esiste)
+   c) createSession(userId): genera JWT token con jose, salva in Session table, ritorna token
+   d) verifySession(token): verifica JWT, controlla session in DB, ritorna user
+   e) Usa jose per JWT (npm install jose) — NON jsonwebtoken (non funziona bene in Edge)
+   
+   Variabili env necessarie (crea .env.example):
+   - DATABASE_URL=postgresql://...
+   - JWT_SECRET=cambia-questo-segreto
+   - SMS_API_KEY=placeholder
+   - SMS_SENDER_ID=BonusDecode
+
+4. app/api/auth/send-otp/route.ts — Endpoint invio OTP:
+   - POST body: { phone: string, country: "NG" | "KE" }
+   - Valida formato telefono (NG: +234..., KE: +254...)
+   - Genera OTP 6 cifre, salva in DB
+   - Per ora: NON invia SMS reale, logga l'OTP in console.log (integrazione SMS verrà dopo)
+   - Ritorna { success: true, message: "OTP sent" }
+   - Rate limit basico: max 3 OTP per phone negli ultimi 10 minuti, altrimenti errore 429
+
+5. app/api/auth/verify-otp/route.ts — Endpoint verifica OTP:
+   - POST body: { phone: string, code: string, referralCode?: string }
+   - Verifica OTP valido e non scaduto
+   - Se user non esiste: crea user + wallet (balance 0) + se referralCode fornito, crea Referral
+   - Genera referralCode unico per il nuovo user (6 char alfanumerico uppercase)
+   - Crea session, ritorna JWT token in cookie HttpOnly + JSON response con user data
+   - Ritorna { success: true, user: { id, phone, country, referralCode }, token }
+
+6. app/api/auth/me/route.ts — Endpoint "chi sono":
+   - GET con Authorization header o cookie
+   - Verifica session, ritorna user data con wallet balance
+   - Se non autenticato: 401
+
+7. lib/auth-middleware.ts — Middleware helper:
+   - getUser(request: NextRequest): legge token da cookie o Authorization header, verifica, ritorna user o null
+   - Esporta funzione riutilizzabile per proteggere API routes
+
+8. components/auth/LoginModal.tsx — Modal di login:
+   - Step 1: input phone number con country prefix selector (+234 Nigeria, +254 Kenya), bottone "Send Code"
+   - Step 2: input 6 cifre OTP, bottone "Verify", link "Resend code" (disabilitato per 60 secondi)
+   - Loading states con spinner
+   - Error messages inline
+   - On success: chiudi modal, refresh page
+   - Usa shadcn/ui Dialog, Input, Button
+   - Salva token in cookie client-side (js-cookie, installalo: npm install js-cookie @types/js-cookie)
+
+9. components/auth/UserMenu.tsx — Menu utente in navbar:
+   - Se non loggato: bottone "Sign In" che apre LoginModal
+   - Se loggato: avatar con iniziali + dropdown (Wallet, Referral, Sign Out)
+   - Sign Out: cancella cookie, redirect a /
+
+10. Aggiorna il layout principale per includere UserMenu nella navbar.
+
+11. middleware.ts (root) — Route protection:
+    - Proteggi /wallet e /referral: se no token valido, redirect a / con query param ?login=true
+    - Le route /calculator, /casino, /guides rimangono pubbliche
+
+12. Aggiorna app/api/tracking/click/route.ts:
+    - Se user è autenticato (leggi cookie), salva userId nel click record in DB
+    - Se non autenticato: salva comunque il click senza userId (salva in DB ora, non solo console.log)
+
+REGOLE:
+- Installa tutti i pacchetti necessari senza chiedere
+- NON eseguire prisma migrate — crea solo lo schema. Io configurerò DATABASE_URL dopo
+- Crea .env.example con TUTTE le variabili necessarie e valori placeholder
+- Il login via SMS per ora è SIMULATO: l'OTP viene loggato in console, non inviato realmente
+- Dark theme, mobile-first, inglese
+- Non modificare calculator o pagine casino esistenti
+- Non chiedere conferme, esegui tutto
