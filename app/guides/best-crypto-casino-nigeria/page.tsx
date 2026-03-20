@@ -4,7 +4,7 @@ import { CASINOS } from "@/lib/casinos";
 import CasinoCard from "@/components/casino/CasinoCard";
 
 export const metadata: Metadata = {
-  title: "Best Crypto Casinos in Nigeria 2026 - Bonus Decoder",
+  title: "Best Crypto Casinos in Nigeria 2026 - WagerScope",
   description:
     "Discover the best crypto casinos available in Nigeria for 2026. Compare bonuses, wagering requirements, and expected value from top platforms accepting USDT, BTC, and ETH.",
   openGraph: {
@@ -23,7 +23,7 @@ export default function BestCryptoCasinoNigeria() {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: "Best Crypto Casinos in Nigeria 2026",
-    author: { "@type": "Organization", name: "Bonus Decoder" },
+    author: { "@type": "Organization", name: "WagerScope" },
     datePublished: "2026-01-15",
     dateModified: "2026-03-01",
   };

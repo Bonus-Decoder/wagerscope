@@ -1,6 +1,6 @@
 {
-  "name": "Bonus Decoder",
-  "short_name": "BonusDec",
+  "name": "WagerScope",
+  "short_name": "WagerScope",
   "description": "Wagering requirements calculator for crypto casino bonuses",
   "start_url": "/",
   "display": "standalone",

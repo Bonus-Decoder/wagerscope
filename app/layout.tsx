@@ -10,34 +10,34 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: {
-    default: "Bonus Decoder - Crypto Casino Bonus Calculator",
-    template: "%s | Bonus Decoder",
+    default: "WagerScope - Crypto Casino Bonus Calculator",
+    template: "%s | WagerScope",
   },
   description:
     "Wagering requirements calculator for crypto casino bonuses — Nigeria & Kenya. Analyze expected value and compare offers from top crypto casinos.",
-  metadataBase: new URL("https://bonusdecoder.app"),
+  metadataBase: new URL("https://wagerscope.com"),
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Bonus Decoder",
+    title: "WagerScope",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "Bonus Decoder",
-    title: "Bonus Decoder - Crypto Casino Bonus Calculator",
+    siteName: "WagerScope",
+    title: "WagerScope - Crypto Casino Bonus Calculator",
     description:
       "The only tool that shows you the REAL cost of crypto casino bonuses. Calculate wagering requirements and expected value instantly.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Bonus Decoder - Crypto Casino Bonus Calculator",
+    title: "WagerScope - Crypto Casino Bonus Calculator",
     description:
       "Calculate the real cost of crypto casino bonuses. Free wagering requirements analyzer for Nigeria & Kenya.",
   },
   alternates: {
-    canonical: "https://bonusdecoder.app",
+    canonical: "https://wagerscope.com",
   },
 };
 
@@ -59,7 +59,7 @@ export default function RootLayout({
         <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
             <Link href="/" className="text-lg font-bold">
-              Bonus Decoder
+              WagerScope
             </Link>
             <nav className="flex items-center gap-4">
               <Link

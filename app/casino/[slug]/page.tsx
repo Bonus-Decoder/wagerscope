@@ -29,7 +29,7 @@ export function generateMetadata({
     title: `${casino.name} Review 2026 - Bonus & Wagering Analysis`,
     description: `${casino.name} offers ${casino.bonusAmount} with ${casino.wageringReq}x wagering. Read our full analysis including expected value, pros, cons, and crypto support.`,
     openGraph: {
-      title: `${casino.name} Review 2026 - Bonus Decoder`,
+      title: `${casino.name} Review 2026 - WagerScope`,
       description: `${casino.bonusAmount} bonus with ${casino.wageringReq}x wagering. Is it worth it?`,
     },
   };
@@ -78,7 +78,7 @@ export default function CasinoPage({
     },
     author: {
       "@type": "Organization",
-      name: "Bonus Decoder",
+      name: "WagerScope",
     },
     datePublished: "2026-01-15",
     description: `${casino.name} offers ${casino.bonusAmount} with ${casino.wageringReq}x wagering requirement.`,

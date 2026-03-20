@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import CalculatorPage from "@/components/calculator/CalculatorPage";
 
 export const metadata: Metadata = {
-  title: "Bonus Decoder - Crypto Casino Bonus Calculator",
+  title: "WagerScope - Crypto Casino Bonus Calculator",
   description:
     "Free wagering requirement calculator for crypto casino bonuses. Analyze bonus expected value, house edge cost, and compare offers from top crypto casinos.",
 };

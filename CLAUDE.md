@@ -1,8 +1,8 @@
-# Bonus Decoder
+# WagerScope
 
 ## Project Description
 
-Bonus Decoder is a Progressive Web App (PWA) that helps users calculate and understand wagering requirements for crypto casino bonuses. The primary target markets are Nigeria and Kenya.
+WagerScope is a Progressive Web App (PWA) that helps users calculate and understand wagering requirements for crypto casino bonuses. The primary target markets are Nigeria and Kenya.
 
 The tool allows users to input bonus parameters (deposit amount, match percentage, wagering multiplier, game contributions) and get a clear breakdown of what they need to wager, expected value analysis, and recommendations.
 

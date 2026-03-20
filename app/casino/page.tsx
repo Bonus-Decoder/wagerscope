@@ -3,7 +3,7 @@ import { CASINOS } from "@/lib/casinos";
 import CasinoListClient from "./CasinoListClient";
 
 export const metadata: Metadata = {
-  title: "Best Crypto Casinos 2026 - Bonus Decoder",
+  title: "Best Crypto Casinos 2026 - WagerScope",
   description:
     "Compare the best crypto casinos available in Nigeria and Kenya. See bonus offers, wagering requirements, and expected value analysis side by side.",
 };

@@ -58,7 +58,7 @@ export default function ReferralPage() {
   }, [fetchStats]);
 
   const referralLink = stats
-    ? `https://bonusdecoder.app/r/${stats.referralCode}`
+    ? `https://wagerscope.com/r/${stats.referralCode}`
     : "";
 
   const handleCopy = async () => {
@@ -68,12 +68,12 @@ export default function ReferralPage() {
   };
 
   const handleWhatsApp = () => {
-    const text = `Check out Bonus Decoder - the best crypto casino bonus calculator! ${referralLink}`;
+    const text = `Check out WagerScope - the best crypto casino bonus calculator! ${referralLink}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const handleTelegram = () => {
-    const text = "Check out Bonus Decoder - the best crypto casino bonus calculator!";
+    const text = "Check out WagerScope - the best crypto casino bonus calculator!";
     window.open(
       `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`,
       "_blank"
@@ -125,7 +125,7 @@ export default function ReferralPage() {
       <Card className="bg-gradient-to-r from-emerald-900/50 to-emerald-800/30 border-emerald-700/50">
         <CardContent className="py-8 text-center">
           <h1 className="text-2xl font-bold mb-2">
-            Earn $1 USDT for every friend who uses Bonus Decoder
+            Earn $1 USDT for every friend who uses WagerScope
           </h1>
           <p className="text-muted-foreground">
             Share your referral link and earn rewards when friends use the calculator and explore casinos.

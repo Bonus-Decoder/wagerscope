@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Wagering Requirements Explained - Complete Guide 2026 | Bonus Decoder",
+  title: "Wagering Requirements Explained - Complete Guide 2026 | WagerScope",
   description:
     "Learn how wagering requirements work, how they affect your bonus value, and how to calculate expected value. A complete guide for crypto casino players.",
   openGraph: {
@@ -17,7 +17,7 @@ export default function WageringRequirementsExplained() {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: "Wagering Requirements Explained - Complete Guide 2026",
-    author: { "@type": "Organization", name: "Bonus Decoder" },
+    author: { "@type": "Organization", name: "WagerScope" },
     datePublished: "2026-01-15",
     dateModified: "2026-03-01",
   };

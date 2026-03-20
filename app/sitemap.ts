@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getCasinoSlugs } from "@/lib/casinos";
 
-const BASE_URL = "https://bonusdecoder.app";
+const BASE_URL = "https://wagerscope.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages: MetadataRoute.Sitemap = [
